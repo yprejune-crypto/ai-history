@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --bg:#F3F1EC; --paper:#FFFFFF; --ink:#26282B; --muted:#6E6A63; --line:#D9D4CA;
+    --navy:#243B53; --accent:#B85420;
+    --spring:#E8932A; --spring-t:#FCEEDB; --spring-ink:#8A4F08;
+    --winter:#6F66D6; --winter-t:#ECEAFB; --winter-ink:#453DA3;
+    --ok:#2F7D5B; --bad:#C0392B;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.5}
+  button{font:inherit;cursor:pointer}
+  button:focus-visible,input:focus-visible,.card:focus-visible,.slot:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 24px 40px}
+
+  header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+  .brand{font-weight:800;letter-spacing:.02em}
+  .brand span{color:var(--accent)}
+  .people{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+  .chip{padding:3px 10px;border-radius:999px;background:var(--paper);border:1px solid var(--line);font-size:13px;white-space:nowrap}
+  .chip.me{border-color:var(--navy);font-weight:700}
+  .chip.holding{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .people-count{font-size:13px;color:var(--muted);margin-right:4px}
+  .ghost-btn{border:1px solid var(--line);background:transparent;border-radius:8px;padding:3px 10px;font-size:13px;color:var(--muted)}
+
+  h1{font-size:30px;font-weight:700;margin:18px 0 2px;letter-spacing:-.01em}
+  .lead{margin:0 0 16px;color:var(--muted)}
+
+  .status{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--navy);color:#fff;
+    border-radius:10px;padding:12px 18px;font-weight:600}
+  .status .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#6FD08C;margin-right:10px;vertical-align:1px}
+  .status.busy .dot{background:#F2C14E}
+  .status.done{background:var(--ok)}
+  .score{font-weight:500;white-space:nowrap}
+  .lastline{min-height:26px;margin:8px 2px 0;font-size:14px;color:var(--muted)}
+  .lastline b{color:var(--ink)}
+  .lastline .ok{color:var(--ok);font-weight:700}
+  .lastline .bad{color:var(--bad);font-weight:700}
+
+  h2{font-size:18px;font-weight:700;margin:22px 0 10px;display:flex;justify-content:space-between;align-items:baseline}
+  h2 small{font-size:13px;font-weight:400;color:var(--muted)}
+
+  /* 연대기 띠 + 자리 */
+  .timeline{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .band{border-radius:8px 8px 0 0;padding:5px 10px;font-size:13px;font-weight:700;margin-bottom:-4px}
+  .band.spring{background:var(--spring-t);color:var(--spring-ink);border-bottom:3px solid var(--spring)}
+  .band.winter{background:var(--winter-t);color:var(--winter-ink);border-bottom:3px solid var(--winter)}
+  .slot{min-height:112px;background:var(--paper);border:1.5px dashed #C7C1B5;border-radius:0 0 10px 10px;padding:10px 12px;
+    display:flex;flex-direction:column;gap:2px;transition:background .15s,border-color .15s}
+  .slot .num{font-size:13px;font-weight:800;color:var(--accent)}
+  .slot .hint{color:#A8A296;font-size:14px;margin-top:6px}
+  .slot{border-top:none}
+  .slot.filled{border-style:solid;border-color:var(--line);border-top:none}
+  .slot .t{font-weight:700;font-size:16px;line-height:1.3}
+  .slot .by{font-size:12px;color:var(--muted);margin-top:auto}
+  .slot .year{font-size:22px;font-weight:800;color:var(--navy);opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s}
+  .done .slot .year{opacity:1;transform:none}
+  .targeting .slot:not(.filled){cursor:pointer}
+  .targeting .slot:not(.filled):hover,.slot.over{background:#FFF7EC;border-color:var(--accent)}
+  .slot.flash{animation:flash .9s}
+  .slot.shake{animation:shake .45s}
+  @keyframes flash{0%{background:#DDF2E6}100%{background:var(--paper)}}
+  @keyframes shake{0%,100%{transform:none}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+
+  /* 카드 */
+  .pool{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:grab;
+    user-select:none;touch-action:none;transition:transform .12s,box-shadow .12s,opacity .2s}
+  .card:hover{box-shadow:0 2px 0 var(--line)}
+  .card .t{font-weight:700;font-size:16px;margin-bottom:4px}
+  .card ul{margin:0;padding-left:16px;font-size:13px;color:#4A4741}
+  .card li{margin:1px 0}
+  .card.selected{outline:3px solid var(--navy);outline-offset:1px}
+  .pool.frozen .card:not(.selected){opacity:.45;cursor:not-allowed}
+  .pool.frozen .card.lockedByOther{opacity:1;background:#FFF8E6;border:2px solid #F2C14E}
+  .card .who{display:inline-block;font-size:12px;font-weight:700;color:#7A5A00;background:#FCE9B2;border-radius:6px;padding:1px 8px;margin-bottom:6px}
+  #app{user-select:none}
+  .card.back{animation:back .6s}
+  @keyframes back{0%{transform:translateY(-26px) scale(.96);box-shadow:0 10px 18px rgba(192,57,43,.25)}60%{transform:translateY(4px)}100%{transform:none}}
+  .dragghost{position:fixed;z-index:50;pointer-events:none;width:240px;transform:rotate(-2deg);box-shadow:0 12px 24px rgba(36,59,83,.25)}
+  .empty{grid-column:1/-1;color:var(--muted);padding:12px 2px}
+
+  footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-size:14px}
+  .admin{display:none;gap:8px}
+  .admin.on{display:flex}
+  .btn{border:1px solid var(--navy);background:var(--paper);color:var(--navy);border-radius:8px;padding:8px 14px;font-weight:600}
+  .btn.solid{background:var(--navy);color:#fff}
+
+  /* 입장 · 강사 창 */
+  .overlay{position:fixed;inset:0;background:rgba(36,59,83,.55);display:flex;align-items:center;justify-content:center;z-index:80;padding:20px}
+  .overlay[hidden]{display:none}
+  .modal{background:var(--paper);border-radius:14px;padding:26px;width:min(380px,100%)}
+  .modal h3{margin:0 0 4px;font-size:20px}
+  .modal p{margin:0 0 14px;color:var(--muted);font-size:14px}
+  .modal input{width:100%;font:inherit;font-size:17px;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;margin-bottom:10px}
+  .modal .row{display:flex;gap:8px;justify-content:flex-end}
+  .modal .err{color:var(--bad);font-size:13px;min-height:18px;margin-bottom:6px}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;
+    font-size:14px;z-index:90;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+
+  @media (max-width:860px){
+    .timeline{grid-template-columns:repeat(3,1fr)}
+    .band{display:none}
+    .slot{border-radius:10px}
+    .slot.era-spring{border-top:4px solid var(--spring)}
+    .slot.era-winter{border-top:4px solid var(--winter)}
+    .pool{grid-template-columns:repeat(2,1fr)}
+    h1{font-size:24px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div class="brand">AI <span>/</span> 역사</div>
+    <div class="people" id="people"></div>
+  </header>
+
+  <h1>인공지능의 역사, 함께 놓기</h1>
+  <p class="lead">카드의 단서를 읽고 12개의 자리를 채워 주세요. 틀린 자리에 놓은 카드는 돌아옵니다.</p>
+
+  <div class="status" id="status"><span><span class="dot"></span><span id="statusText">연결하는 중…</span></span><span class="score" id="score">0 / 12 정답</span></div>
+  <div class="lastline" id="lastline"></div>
+
+  <h2>역사의 흐름 <small>앞에서 뒤로, 1부터 12까지</small></h2>
+  <div id="board"></div>
+
+  <h2>사건 카드 <small>끌어다 놓거나, 카드를 누른 뒤 자리를 누르세요</small></h2>
+  <div class="pool" id="pool"></div>
+
+  <footer>
+    <span>무엇이 가능해졌는지, 왜 기대가 꺾였는지 함께 살펴보세요.</span>
+    <span class="admin" id="adminBar">
+      <button class="btn" id="unlockBtn">잠금 풀기</button>
+      <button class="btn solid" id="resetBtn">판 초기화</button>
+    </span>
+  </footer>
+</div>
+
+<div class="overlay" id="joinBox">
+  <div class="modal">
+    <h3>함께 놓기에 입장</h3>
+    <p>다른 참여자에게 보일 이름을 적어 주세요.</p>
+    <input id="nameInput" maxlength="12" placeholder="예: 서울초 김선생" autocomplete="off">
+    <div class="err" id="joinErr"></div>
+    <div class="row"><button class="btn solid" id="joinBtn">입장하기</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="adminBox" hidden>
+  <div class="modal">
+    <h3>강사 코드</h3>
+    <p>강사 코드를 입력하면 판 초기화와 잠금 풀기를 쓸 수 있어요.</p>
+    <input id="codeInput" type="password" inputmode="numeric" autocomplete="off">
+    <div class="err" id="adminErr"></div>
+    <div class="row"><button class="btn" id="adminCancel">닫기</button><button class="btn solid" id="adminOk">확인</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 카드 내용 (정답 순서는 서버에만 있음) ──
+const CARDS = [
+  {id:'turing', t:'튜링 테스트', c:['"기계가 생각할 수 있을까?"라는 질문','대화만으로 지능을 판별하는 모방 게임',"'AI'라는 이름이 생기기도 전"]},
+  {id:'perceptron', t:'퍼셉트론', c:['뇌의 뉴런을 본뜬 학습 기계','사례를 보고 스스로 패턴을 배움',"언론이 '생각하는 기계'라며 열광"]},
+  {id:'backprop', t:'역전파', c:['여러 층의 신경망을 학습시키는 방법','신경망이 외면받던 시기에 발표','훗날 딥러닝의 토대']},
+  {id:'perceptrons', t:'『퍼셉트론즈』', c:['단순 퍼셉트론의 한계를 수학적으로 분석한 책','간단한 XOR 문제도 풀 수 없음','신경망 연구 지원이 줄어드는 계기']},
+  {id:'alphago', t:'알파고', c:['바둑 세계 정상급 기사에게 4승 1패','스스로 대국하며 실력을 키움','전 세계가 AI에 주목']},
+  {id:'chatgpt', t:'ChatGPT', c:['대화형 생성 AI가 누구에게나 공개','5일 만에 사용자 100만 명','모두가 AI를 쓰는 시대']},
+  {id:'dartmouth', t:'다트머스 회의', c:["'인공지능'이라는 이름이 처음 등장",'연구자들의 여름 워크숍','넘치는 낙관 속 학문의 출발']},
+  {id:'imagenet', t:'이미지넷', c:['1,400만 장 넘는 이미지에 이름표를 붙인 데이터','"부족한 건 알고리즘이 아니라 데이터"','이 데이터로 이미지 인식 대회가 열림']},
+  {id:'alexnet', t:'AlexNet', c:['이미지 인식 대회에서 딥러닝이 압승','2위와 큰 격차로 오류율을 낮춤','게임용 그래픽 칩(GPU)으로 학습']},
+  {id:'expert', t:'전문가 시스템', c:['전문가의 지식을 IF~THEN 규칙으로 입력','기업 투자가 다시 몰린 두 번째 붐','규칙이 수만 개로 불어나며 한계']},
+  {id:'lighthill', t:'라이트힐 보고서', c:['영국 정부 기관이 의뢰한 AI 연구 평가','"성과가 약속에 못 미친다"','연구비가 끊기며 첫 번째 겨울']},
+  {id:'transformer', t:'트랜스포머', c:['문장 전체를 한 번에 보며 단어 관계를 파악','논문 「Attention Is All You Need」','오늘날 생성형 AI의 뼈대']}
+];
+const CARD = Object.fromEntries(CARDS.map(c => [c.id, c]));
+// 자리별 시기 (띠)
+const ERA = {1:'spring',2:'spring',3:'spring',4:'spring',5:'winter',6:'spring',7:'winter',8:'spring',9:'spring',10:'spring',11:'spring',12:'spring'};
+const BANDS = [
+  [{label:'1차 봄', cls:'spring', span:4},{label:'1차 겨울', cls:'winter', span:1},{label:'2차 봄', cls:'spring', span:1}],
+  [{label:'2차 겨울', cls:'winter', span:1},{label:'3차 봄', cls:'spring', span:5}]
+];
+
+// ── 서버 주소: 앱스스크립트 배포 후 받은 /exec 주소를 따옴표 안에 붙여넣으세요 ──
+const API_URL = 'https://script.google.com/macros/s/AKfycbw-nnHBQrqTKfsue8EkWp3OtOm_EQOEtTH9zZY7rTf9bxaEBsjKtWR4pUCmUIhRGM0n/exec';
+
+// ── 서버 호출 ──
+async function run(fn, ...args){
+  const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({fn, args}) });
+  const out = await res.json();
+  if(!out.ok) throw new Error(out.error || '서버 오류');
+  return out.data;
+}
+
+let me = null, S = null, holding = null, admin = null, lastVersion = 0, busy = false, drag = null, lastLockKey = '';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2200); }
+
+// ── 입장 ──
+try{ const saved = JSON.parse(sessionStorage.getItem('aiHistoryMe')||'null'); if(saved && saved.id){ me = saved; } }catch(e){}
+if(me){ $('joinBox').hidden = true; start(); }
+$('nameInput').addEventListener('keydown', e => { if(e.key==='Enter') doJoin(); });
+$('joinBtn').onclick = doJoin;
+async function doJoin(){
+  const name = $('nameInput').value.trim();
+  if(!name){ $('joinErr').textContent='이름을 적어 주세요.'; return; }
+  $('joinBtn').disabled = true;
+  try{
+    const r = await run('join', name);
+    me = {id:r.id, name:r.name};
+    try{ sessionStorage.setItem('aiHistoryMe', JSON.stringify(me)); }catch(e){}
+    $('joinBox').hidden = true;
+    apply(r.state, true); start();
+  }catch(e){ $('joinErr').textContent = e.message || '입장하지 못했어요. 다시 눌러 주세요.'; }
+  $('joinBtn').disabled = false;
+}
+
+function start(){
+  refresh();
+  setInterval(refresh, 1500);
+  setInterval(tick, 1000);
+}
+let polling = false;
+async function refresh(){
+  if(busy || polling) return;
+  polling = true;
+  try{ apply(await run('poll', me && me.id)); }catch(e){ setStatus('연결이 잠시 끊겼어요. 자동으로 다시 연결합니다.', 'busy'); }
+  polling = false;
+}
+function tick(){ if(S && S.lock && S.lock.left > 0){ S.lock.left--; renderStatus(); } }
+
+// ── 상태 반영 ──
+function apply(state, force){
+  if(!state) return;
+  if(!force && S && state.version < lastVersion) return;   // 늦게 도착한 예전 응답은 무시
+  S = state;
+  // 내가 잡은 카드가 서버에서 풀렸으면(시간 초과) 선택 해제
+  if(holding && holding.granted && S.version >= holding.v && !(S.lock && S.lock.id === me.id)){ holding = null; toast('잡은 시간이 지나 카드가 풀렸어요.'); force = true; }
+  const lockKey = S.lock ? S.lock.id + S.lock.card : '';
+  const changed = force || S.version !== lastVersion || lockKey !== lastLockKey;
+  lastVersion = S.version; lastLockKey = lockKey;
+  renderPeople(); renderStatus();
+  if(changed) { renderBoard(); renderPool(); }
+}
+
+function lockedByOther(){ return S && S.lock && S.lock.id !== (me && me.id); }
+
+function renderPeople(){
+  const holder = S.lock && S.lock.id;
+  const list = S.online || [];
+  let html = `<span class="people-count">${list.length}명 참여 중</span>`;
+  list.slice(0, 10).forEach(p => {
+    const cls = ['chip', p.id===me.id?'me':'', p.id===holder?'holding':''].join(' ');
+    html += `<span class="${cls}">${esc(p.name)}${p.id===me.id?' (나)':''}</span>`;
+  });
+  if(list.length > 10) html += `<span class="chip">+${list.length-10}</span>`;
+  html += `<button class="ghost-btn" id="adminOpen">${admin?'강사 모드':'강사'}</button>`;
+  $('people').innerHTML = html;
+  $('adminOpen').onclick = () => { if(!admin){ $('adminBox').hidden=false; $('codeInput').value=''; $('adminErr').textContent=''; $('codeInput').focus(); } };
+}
+
+function setStatus(text, mode){
+  $('statusText').textContent = text;
+  $('status').className = 'status' + (mode ? ' ' + mode : '');
+}
+function renderStatus(){
+  const n = Object.keys(S.placed).length;
+  $('score').textContent = `${n} / 12 정답`;
+  if(S.done){ setStatus('완성했어요! 세 번의 봄과 두 번의 겨울이 드러났어요.', 'done'); }
+  else if(S.lock && S.lock.id === me.id){ setStatus(`${CARD[S.lock.card].t} 카드를 자리에 놓아 주세요 (${S.lock.left}초 남음)`, 'busy'); }
+  else if(S.lock){ setStatus(`${S.lock.name}님이 ${CARD[S.lock.card].t} 카드를 놓는 중이에요 (${S.lock.left}초)`, 'busy'); }
+  else setStatus('카드를 골라 자리에 놓아 주세요. 한 번에 한 사람씩 놓을 수 있어요.');
+  const L = S.last;
+  $('lastline').innerHTML = L ? `최근 시도: <b>${esc(L.name)}</b>님이 ‘${esc(CARD[L.card].t)}’를 ${L.slot}번 자리에 → ${L.ok?'<span class="ok">정답</span>':'<span class="bad">돌아왔어요</span>'} <span style="margin-left:8px">(시도 ${S.attempts}번, 되돌아온 카드 ${S.wrong}번)</span>` : '';
+}
+
+function renderBoard(){
+  const board = $('board');
+  board.className = (holding ? 'targeting ' : '') + (S.done ? 'done' : '');
+  let html = '';
+  for(let row=0; row<2; row++){
+    html += '<div class="timeline">';
+    BANDS[row].forEach(b => { html += `<div class="band ${b.cls}" style="grid-column:span ${b.span}">${b.label}</div>`; });
+    for(let i=1;i<=6;i++){
+      const slot = row*6 + i, p = S.placed[slot];
+      if(p){
+        html += `<div class="slot filled era-${ERA[slot]}" data-slot="${slot}"><span class="num">${String(slot).padStart(2,'0')}</span>
+          <span class="year">${p.year ? esc(p.year) : ''}</span><span class="t">${esc(CARD[p.card].t)}</span><span class="by">${esc(p.by)}님이 놓음</span></div>`;
+      }else{
+        html += `<div class="slot era-${ERA[slot]}" data-slot="${slot}" tabindex="${holding?0:-1}"><span class="num">${String(slot).padStart(2,'0')}</span><span class="hint">사건을 놓을 자리</span></div>`;
+      }
+    }
+    html += '</div>';
+    if(row===0) html += '<div style="height:10px"></div>';
+  }
+  board.innerHTML = html;
+  board.querySelectorAll('.slot:not(.filled)').forEach(el => {
+    el.onclick = () => { if(holding) placeOn(Number(el.dataset.slot)); };
+    el.onkeydown = e => { if(e.key==='Enter' && holding) placeOn(Number(el.dataset.slot)); };
+  });
+}
+
+function renderPool(){
+  const placedIds = new Set(Object.values(S.placed).map(p => p.card));
+  const pool = $('pool');
+  const frozen = lockedByOther() || !!holding;
+  pool.className = 'pool' + (frozen ? ' frozen' : '');
+  const left = CARDS.filter(c => !placedIds.has(c.id));
+  if(!left.length){ pool.innerHTML = '<div class="empty">모든 카드가 자리를 찾았어요.</div>'; return; }
+  pool.innerHTML = left.map(c => {
+    const cls = ['card',
+      holding && holding.card===c.id ? 'selected' : '',
+      S.lock && S.lock.card===c.id && lockedByOther() ? 'lockedByOther' : ''].join(' ');
+    const who = S.lock && S.lock.card===c.id && lockedByOther() ? `<span class="who">${esc(S.lock.name)}님이 잡는 중</span>` : '';
+    return `<div class="${cls}" data-card="${c.id}" tabindex="0">${who}<div class="t">${esc(c.t)}</div><ul>${c.c.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+  }).join('');
+  pool.querySelectorAll('.card').forEach(el => {
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('keydown', e => { if(e.key==='Enter') clickCard(el.dataset.card); });
+  });
+}
+
+// ── 잡기 · 놓기 ──
+async function grabCard(card){
+  if(S.done) return false;
+  if(lockedByOther()){ toast(`${S.lock.name}님이 카드를 놓는 중이에요. 잠시만 기다려 주세요.`); return false; }
+  holding = {card, granted:false};
+  holding.req = run('grab', me.id, card).then(r => {
+    if(r.ok){ if(holding && holding.card===card){ holding.granted = true; holding.v = r.state.version; } }
+    else {
+      toast(r.reason); if(holding && holding.card===card) holding = null;
+      if(r.reason && r.reason.indexOf('다시 입장') > -1){ try{ sessionStorage.removeItem('aiHistoryMe'); }catch(e){} $('joinBox').hidden = false; }
+    }
+    apply(r.state, true); return r.ok;
+  }).catch(() => { holding = null; toast('카드를 잡지 못했어요. 다시 시도해 주세요.'); renderPool(); renderBoard(); return false; });
+  renderPool(); renderBoard();
+  return true;
+}
+async function clickCard(card){
+  if(holding && holding.card === card){ releaseCard(); return; }
+  if(holding) return;
+  await grabCard(card);
+}
+async function placeOn(slot){
+  if(!holding) return;
+  const h = holding;
+  busy = true;
+  const ok = await h.req;
+  if(!ok){ busy = false; return; }
+  try{
+    const r = await run('place', me.id, h.card, slot);
+    holding = null;
+    apply(r.state, true);
+    const el = document.querySelector(`.slot[data-slot="${slot}"]`);
+    if(r.result === 'correct'){ el && el.classList.add('flash'); }
+    else if(r.result === 'wrong'){
+      el && el.classList.add('shake');
+      const back = document.querySelector(`.card[data-card="${h.card}"]`);
+      back && back.classList.add('back');
+      toast('이 자리가 아니에요. 카드가 돌아왔어요.');
+    } else { toast(r.reason); }
+  }catch(e){ holding = null; toast('놓지 못했어요. 다시 시도해 주세요.'); }
+  busy = false;
+  renderPool(); renderBoard();
+}
+async function releaseCard(){
+  if(!holding) return;
+  const h = holding; holding = null;
+  renderPool(); renderBoard();
+  const ok = await h.req;
+  if(ok){ try{ apply(await run('release', me.id), true); }catch(e){} }
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') releaseCard(); });
+
+// 끌어다 놓기 (마우스 · 터치 공통)
+function onDown(e){
+  const el = e.currentTarget, card = el.dataset.card;
+  if(e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+  if(holding && holding.card === card){ drag = {el, card, x:e.clientX, y:e.clientY, ghost:null, fresh:false}; }
+  else if(holding){ return; }
+  else { if(lockedByOther()){ toast(`${S.lock.name}님이 카드를 놓는 중이에요. 잠시만 기다려 주세요.`); return; }
+         grabCard(card); drag = {el, card, x:e.clientX, y:e.clientY, ghost:null, fresh:true}; }
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp, {once:true});
+}
+function onMove(e){
+  if(!drag) return;
+  if(!drag.ghost && Math.hypot(e.clientX-drag.x, e.clientY-drag.y) > 6){
+    const src = document.querySelector(`.card[data-card="${drag.card}"]`) || drag.el;
+    drag.ghost = src.cloneNode(true); drag.ghost.classList.add('dragghost'); drag.ghost.classList.remove('selected');
+    document.body.appendChild(drag.ghost);
+  }
+  if(drag.ghost){
+    drag.ghost.style.left = (e.clientX - 120) + 'px'; drag.ghost.style.top = (e.clientY - 30) + 'px';
+    document.querySelectorAll('.slot.over').forEach(s => s.classList.remove('over'));
+    const s = slotAt(e.clientX, e.clientY); if(s) s.classList.add('over');
+  }
+}
+function onUp(e){
+  document.removeEventListener('pointermove', onMove);
+  const d = drag; drag = null;
+  if(!d) return;
+  document.querySelectorAll('.slot.over').forEach(s => s.classList.remove('over'));
+  if(d.ghost){
+    d.ghost.remove();
+    const s = slotAt(e.clientX, e.clientY);
+    if(s && holding) placeOn(Number(s.dataset.slot)); else releaseCard();
+  } else if(!d.fresh){
+    releaseCard();            // 이미 잡은 카드를 다시 누르면 내려놓기
+  }                           // 새로 누른 카드는 선택 상태로 두고 자리를 누르면 놓임
+}
+function slotAt(x, y){
+  const el = document.elementFromPoint(x, y);
+  const s = el && el.closest('.slot');
+  return s && !s.classList.contains('filled') ? s : null;
+}
+
+// ── 강사 ──
+$('adminCancel').onclick = () => { $('adminBox').hidden = true; };
+$('codeInput').addEventListener('keydown', e => { if(e.key==='Enter') $('adminOk').click(); });
+$('adminOk').onclick = async () => {
+  const code = $('codeInput').value.trim();
+  const ok = await run('checkAdmin', code).catch(() => false);
+  if(!ok){ $('adminErr').textContent = '코드가 맞지 않아요.'; return; }
+  admin = code; $('adminBox').hidden = true; $('adminBar').classList.add('on'); renderPeople(); toast('강사 모드가 켜졌어요.');
+};
+$('resetBtn').onclick = async () => {
+  if(!confirm('판을 처음 상태로 되돌릴까요? 놓인 카드가 모두 사라집니다.')) return;
+  try{ holding = null; apply(await run('resetBoard', admin), true); toast('판을 초기화했어요.'); }catch(e){ toast(e.message); }
+};
+$('unlockBtn').onclick = async () => {
+  try{ apply(await run('unlockBoard', admin), true); toast('잠금을 풀었어요.'); }catch(e){ toast(e.message); }
+};
+</script>
+</body>
+</html>
